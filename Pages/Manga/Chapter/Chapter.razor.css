@@ -1,0 +1,31 @@
+#menu-chapter {
+  display: grid;
+  height: 3rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+#menu-chapter .oi {
+  width: 100%;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#menu-chapter-select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, gray 50%),
+    linear-gradient(135deg, gray 50%, transparent 50%),
+    linear-gradient(to right, #ccc, #ccc);
+  background-position: calc(100% - 20px) 0.8em,
+    calc(100% - 15px) 0.8em, calc(100% - 2.5em) 0.2em;
+  background-size: 5px 5px, 5px 5px, 1px 1.5em;
+  background-repeat: no-repeat;
+}
+
+@media (min-width: 992px) {
+  .image-chapter {
+    position: absolute;
+    overflow-y: scroll;
+  }
+}

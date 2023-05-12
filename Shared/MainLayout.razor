@@ -1,0 +1,77 @@
+﻿@inherits LayoutComponentBase
+@inject MangadexService Mangadex
+@inject NavigationManager Navigate
+@inject IJSRuntime JSRuntime
+@using System.Net
+@using System.Text.Json
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main class="d-flex flex-column flex-1">
+        <div class="top-row py-3 justify-content-between">
+            <button class="navbar navbar-dark navbar-toggler">
+                <svg class="navbar-toggler-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+                    <path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/>
+                </svg>
+            </button>
+            <div class="border w-50 bg-white position-relative">
+                <div class="d-flex p-2">
+                    <input
+                        class="border-0 flex-1"
+                        type="text"
+                        placeholder="Title Manga"
+                        @onchange="@OnChange"
+                    >
+                </div>
+                <div 
+                    id="search-drop" 
+                    class="w-100 position-absolute top-100 bg-white"
+                >
+                    @foreach (var item in mangas)
+                    {
+                        <NavLink
+                            class="href-none cursor-pointer"
+                            @onmouseup="@(e => OnClickLink(item?.Id))"
+                        >
+                            <SearchItem Manga="item" />
+                        </NavLink>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <article class="flex-1">@Body</article>
+    </main>
+</div>
+
+@code {
+    @* private string? title = ""; *@
+    private IList<MangaMangadex> mangas = new List<MangaMangadex>();
+
+    private async Task OnChange(ChangeEventArgs _event)
+    {
+        var title = _event?.Value?.ToString();
+
+        if (title == null || title == "") {
+            mangas.Clear(); return;
+        }
+
+        var response = await Mangadex.GetAsync($"manga?title={title}");
+        if (response.StatusCode == HttpStatusCode.OK) {
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<MangasResponse>(content);
+            
+            if (data?.Result == "ok") mangas = data.Data!;
+        }
+    }
+
+    private void OnClickLink(string? id)
+    {
+        @* title = ""; *@
+        mangas.Clear();
+        Navigate.NavigateTo($"manga/{id}");
+    }
+}

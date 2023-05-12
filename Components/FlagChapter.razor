@@ -1,0 +1,26 @@
+@using Humanizer
+
+@if (Chapter != null) {
+    <div class="d-flex align-content-center justify-content-between gap-2">
+        <div class="d-flex align-content-center gap-2 flex-1 truncate">
+            <div style="width: 1.5rem;">
+                <FlagManga Lang="@Chapter?.Attributes?.TranslatedLanguage" />
+            </div>
+
+            <div class="text-sm truncate">
+                @if (Chapter?.Attributes?.Title != null) {
+                    <div class="truncate">Ch. @Chapter?.Attributes?.Chapter: @Chapter?.Attributes?.Title</div>
+                } else {
+                    <div class="truncate">Ch. @Chapter?.Attributes?.Chapter</div>
+                }
+            </div>
+        </div>
+
+        <i style="white-space: nowrap;">@DateTime.Parse(@Chapter?.Attributes?.UpdatedAt ?? "").Humanize()</i>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public ChapterMangadex? Chapter { get; set; }
+}

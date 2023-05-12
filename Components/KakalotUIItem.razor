@@ -1,0 +1,44 @@
+@inject MangadexService Mangadex
+@using Humanizer
+@using System.Net
+@using System.Text.Json
+
+<div class="w-100 d-flex p-2 gap-2 rounded-lg kakalot-container">
+    <div class="h-100 overflow-hidden position-relative kakalot-cover">
+        <CoverManga Manga="@Manga" />
+    </div>
+
+    <div class="h-100 d-flex flex-column gap-1 flex-1 truncate">
+        <div class="fw-bold text-lg truncate">@Manga?.Attributes?.Title?.FirstOrDefault().Value</div>
+        <FlagChapter Chapter="@chapter" />
+        <div class="text-sm truncate">@string.Join(", ", Manga?.Attributes?.Tags?.Select(x => x?.Attributes?.Name?.FirstOrDefault().Value) ?? new List<string>())</div>
+        <div
+            style="white-space: normal;"
+            class="w-100 text-sm line-clamp-4 flex-1"
+        >
+            @Manga?.Attributes?.Description?.GetValueOrDefault("en")
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public MangaMangadex? Manga { get; set; }
+
+    private ChapterMangadex? chapter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Mangadex.GetAsync($"chapter/{Manga?.Attributes?.LatestUploadedChapter}");
+        if (response.StatusCode == HttpStatusCode.OK) {
+            try {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<ChapterResponse>(content);
+
+                if (data?.Result == "ok") chapter = data.Data;
+            } catch (System.Exception error) {
+                Console.WriteLine($"Error Cover {error.Message}");
+            }
+        }
+    }
+}

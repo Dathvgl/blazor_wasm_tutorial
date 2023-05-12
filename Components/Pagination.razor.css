@@ -1,0 +1,34 @@
+.btn-page-nav,
+.btn-page-item {
+  background: none;
+  color: inherit;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  outline: inherit;
+  padding: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(0, 0, 0, 10%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-page-nav:hover:not(.btn-page-active),
+.btn-page-item:hover:not(.btn-page-active) {
+  background-color: rgba(0, 0, 0, 10%);
+}
+
+.btn-page-nav {
+  border-radius: 9999px;
+}
+
+.btn-page-item {
+  border-radius: 0.5rem;
+}
+
+.btn-page-active {
+  background-color: rgba(255, 0, 0, 50%);
+}

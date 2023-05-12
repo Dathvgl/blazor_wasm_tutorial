@@ -1,0 +1,34 @@
+@inject HttpClient Http
+@inject MangadexService Mangadex
+@using PSC.Blazor.Components.Icons
+
+@if (countryCode != null) {
+    <SVGFlag
+        style="width: 1.5rem;"
+        class="h-100"
+        CountryCode="@countryCode"
+        FlagType="FlagType.Wide"
+    />
+}
+
+@code {
+    [Parameter]
+    public string? Lang { get; set; }
+
+    private string? countryCode;
+
+    protected override void OnInitialized()
+    {
+        var iso6391 = Mangadex.Iso6391;
+        var split = Lang?.Split("-");
+        if (split?.Length == 2)
+        {
+            try {
+                countryCode = iso6391?[split?[1] ?? "en"] ?? "US";
+            } catch (System.Exception) {
+                countryCode = iso6391?[split?[0] ?? "en"] ?? "US";
+            }
+        }
+        else countryCode = iso6391?[split?[0] ?? "en"] ?? "US";
+    }
+}

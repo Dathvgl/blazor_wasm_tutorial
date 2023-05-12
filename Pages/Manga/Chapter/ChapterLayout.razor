@@ -1,0 +1,97 @@
+@implements IAsyncDisposable
+@inherits LayoutComponentBase
+@inject IJSRuntime JSRuntime
+@inject MangadexService Mangadex
+@inject NavigationManager Navigate
+@layout MainLayout
+
+@if (list.Count() != 0)
+{
+    <CascadingValue Value="@list" Name="ListChapter">
+        <div class="h-100 position-relative">@Body</div>
+    </CascadingValue>
+}
+
+@code {
+    private DotNetObjectReference<ChapterLayout>? objRef;
+    private Dictionary<string, string> list = new Dictionary<string, string>();
+
+    [JSInvokable]
+    public void KeyboardEvent(string key)
+    {
+        var link = Navigate.Uri;
+        var uri = new Uri(link);
+        var split = uri.AbsolutePath.Split("/");
+
+        var chapterCurrent = split[split.Length - 1];
+        var index = list.Keys.ToList().IndexOf(chapterCurrent);
+
+        var prev = index + 1;
+        var next = index - 1;
+        switch (key) {
+            case "ArrowLeft":
+                if (prev >= 0) {
+                    Navigate.NavigateTo($"manga/{split[2]}/chapter/{split[4]}/{list.Values.ElementAtOrDefault(prev)}/{list.Keys.ElementAtOrDefault(prev)}");
+                }
+                break;
+            case "ArrowRight":
+                if (next <= list.Count()) {
+                    Navigate.NavigateTo($"manga/{split[2]}/chapter/{split[4]}/{list.Values.ElementAtOrDefault(next)}/{list.Keys.ElementAtOrDefault(next)}");
+                }
+                break;
+            default: break;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var link = Navigate.Uri;
+        var uri = new Uri(link);
+        var split = uri.AbsolutePath.Split("/");
+
+
+
+        try {
+            var id = split[2];
+            var lang = "en";
+
+            var response = await Mangadex.GetFromJsonAsync<AggregateResponse>($"manga/{id}/aggregate?translatedLanguage[]={lang}");
+            if (response?.Result == "ok") {
+                foreach (var item in response?.Volumes ?? new Dictionary<string, AggregateVolume>())
+                {
+                    foreach (var child in item.Value?.Chapters ?? new Dictionary<string, AggregateChapter>())
+                    {
+                        list.Add(child.Value?.Chapter ?? "None", child.Value?.Id ?? "Error");
+                    }
+                }
+            }
+        } catch (System.Exception error) {
+            Console.WriteLine($"Error: {error.Message}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        objRef = DotNetObjectReference.Create(this);
+
+        if (firstRender) {
+            try {
+                await JSRuntime.InvokeVoidAsync("AddUpdateChapter", objRef);
+            } catch (System.Exception error) {
+                Console.WriteLine($"Error: {error.Message}");
+            }
+        }
+
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try {
+            await JSRuntime.InvokeVoidAsync("RemoveUpdateChapter", objRef);
+        } catch (System.Exception error) {
+            Console.WriteLine($"Error: {error.Message}");
+        }
+
+        objRef?.Dispose();
+    }
+}

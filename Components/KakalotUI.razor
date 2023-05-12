@@ -1,0 +1,37 @@
+@inject MangadexService Mangadex
+@using System.Net
+@using System.Text.Json
+
+<div class="d-grid gap-4 home-news">
+    @foreach (var item in mangas) {
+        <NavLink class="href-none" href="@($"manga/{item.Id}")">
+            <KakalotUIItem Manga="item" />
+        </NavLink>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int? Limit { get; set; } = 10;
+    [Parameter]
+    public string? Link { get; set; } = "manga";
+
+    private int total = 0;
+    private IList<MangaMangadex> mangas = new List<MangaMangadex>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Mangadex.GetAsync(Link);
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<MangasResponse>(content);
+            
+            if (data?.Result == "ok")
+            {
+                total = data.Total! ?? 0;
+                mangas = data.Data!;
+            }
+        }
+    }
+}

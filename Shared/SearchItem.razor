@@ -1,0 +1,38 @@
+@inject MangadexService Mangadex
+@using System.Net
+@using System.Text.Json
+@using Blazor_Tutorial.Components
+
+<div class="d-flex gap-4 align-items-center p-2 item-hover
+    search-drop-container">
+    <div class="overflow-hidden position-relative search-drop-cover">
+        <CoverManga Manga="@Manga" />
+    </div>
+    <div class="overflow-hidden flex-1">
+        <div class="fw-bold truncate">@Manga?.Attributes?.Title?.FirstOrDefault().Value</div>
+        <FlagChapter Chapter="@chapter" />
+        <div class="truncate">@string.Join(", ", Manga?.Attributes?.Tags?.Select(x => x?.Attributes?.Name?.FirstOrDefault().Value) ?? new List<string>())</div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public MangaMangadex? Manga { get; set; }
+
+    private ChapterMangadex? chapter;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Mangadex.GetAsync($"chapter/{Manga?.Attributes?.LatestUploadedChapter}");
+        if (response.StatusCode == HttpStatusCode.OK) {
+            try {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<ChapterResponse>(content);
+
+                if (data?.Result == "ok") chapter = data.Data;
+            } catch (System.Exception error) {
+                Console.WriteLine($"Error Cover {error.Message}");
+            }
+        }
+    }
+}

@@ -1,0 +1,214 @@
+@page "/manga/{mangaId}"
+
+@inject MangadexService Mangadex
+@using Blazor_Tutorial.Components
+@using Humanizer
+@using System.Net
+@using System.Text.Json
+
+<PageTitle>Manga</PageTitle>
+
+<div class="d-flex flex-column gap-4">
+    <div class="d-flex gap-2">
+        <div class="overflow-hidden position-relative detail-manga-cover">
+            <CoverManga manga="@manga" />
+        </div>
+        <div class="d-flex flex-column">
+            <div>@manga?.Attributes?.Title?.FirstOrDefault().Value</div>
+        </div>
+    </div>
+    
+    <div class="d-flex flex-wrap text-nowrap gap-2 fw-light p-2">
+        @foreach (var item in @manga?.Attributes?.Tags ?? new List<TagMangadex>())
+        {
+            <NavLink class="href-none" href="">
+                <div class="rounded-lg px-2 py-1 text-sm fw-light detail-manga-tag">
+                    @item?.Attributes?.Name?.FirstOrDefault().Value
+                </div>
+            </NavLink>
+        }
+    </div>
+
+    <div class="d-flex gap-2 p-2">
+        <div style="width: 30%;" class="d-flex flex-column gap-2">
+            @foreach (var item in @manga?.Attributes?.AltTitles ?? new List<Dictionary<string, string>>())
+            {
+                <div class="d-flex gap-2 truncate">
+                    <div style="width: 1.5rem;">
+                        <FlagManga Lang="@item?.FirstOrDefault().Key" />
+                    </div>
+                    <div class="flex-1 truncate">@item?.FirstOrDefault().Value</div>
+                </div>
+            }
+        </div>
+        <div class="flex-1 d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center">
+                <button
+                    class="px-2 py-1 border border-1 rounded-lg item-hover btn-none"
+                    @onclick="OnSort"
+                >
+                    @(order == "asc" ? "Decending" : "Ascending")
+                </button>
+            </div>
+            <div class="d-flex flex-column gap-4">
+                <div class="d-flex flex-column gap-4 detail-manga-content">
+                    @foreach (var item in volumes ?? new Dictionary<string, Dictionary<string, IList<ChapterMangadex>>>())
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            <div>@(item.Key == "-1" ? "No Volume" : $"Volume: {item.Key}")</div>
+                            <div
+                                style="background-color: #ececec;"
+                                class="d-flex flex-column"
+                            >
+                                @foreach (var child in item.Value)
+                                {
+                                    <div class="d-flex flex-column gap-1 px-3 py-2 divide-y-2">
+
+                                        <div>Chapter: @child.Key</div>
+                                        @foreach (var node in child.Value)
+                                        {
+                                            <NavLink
+                                                class="d-flex gap-2 px-4 align-items-center justify-content-between href-none item-hover"
+                                                href="@($"manga/{manga?.Id}/chapter/{node?.Attributes?.TranslatedLanguage}/{node?.Id}/{node?.Attributes?.Chapter}")"
+                                            >
+                                                <div class="d-flex gap-2 align-items-center">
+                                                    <div style="width: 1.5rem;">
+                                                        <FlagManga Lang="@node?.Attributes?.TranslatedLanguage" />
+                                                    </div>
+                                                    <div>@(
+                                                        node?.Attributes?.Title == null || node?.Attributes?.Title == ""
+                                                            ? $"Ch. {node?.Attributes?.Chapter}"
+                                                            : node?.Attributes?.Title
+                                                    )</div>
+                                                </div>
+                                                <i style="white-space: nowrap;">@DateTime.Parse(@node?.Attributes?.UpdatedAt ?? "").Humanize()</i>
+                                            </NavLink>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                @if (total != 0)
+                {
+                    <Pagination
+                        PageCount=@(total / offset + 1)
+                        OnPageChange="OnPageChange"
+                    />
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? MangaId { get; set; }
+
+    private int page = 1;
+    private int total = 0;
+    private int offset = 50;
+    private string order = "desc";
+    private MangaMangadex? manga;
+    private Dictionary<string, Dictionary<string, IList<ChapterMangadex>>>? volumes;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await Mangadex.GetAsync($"manga/{MangaId}");
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<MangaResponse>(content);
+            
+            if (data?.Result == "ok")
+            {
+                manga = data.Data!;
+            }
+        }
+
+        await UpdateChapter();
+    }
+
+    private async Task UpdateChapter()
+    {
+        var response = await Mangadex.GetAsync($"manga/{MangaId}/feed?limit={offset}&offset={offset * (page - 1)}&order[volume]={order}&order[chapter]={order}");
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<ChaptersResponse>(content);
+            
+            if (data?.Result == "ok")
+            {
+                total = data.Total ?? 0;
+                var list = new Dictionary<string, Dictionary<string, IList<ChapterMangadex>>>();
+                
+                foreach (var item in data.Data!)
+                {
+                    var volume = item?.Attributes?.Volume ?? "-1";
+                    var chapter = item?.Attributes?.Chapter ?? "";
+
+                    if (!list.ContainsKey(volume)) 
+                    {
+                        list[volume] = new Dictionary<string, IList<ChapterMangadex>>();
+                    }
+
+                    if (!list[volume].ContainsKey(chapter))
+                    {
+                        list[volume][chapter] = new List<ChapterMangadex>();
+                    }
+
+                    list[volume][chapter].Add(item!);
+                }
+
+                volumes = list.OrderByDescending(x => {
+                    var num = Int16.Parse(x.Key);
+                    if (num == -1)
+                    {
+                        if (order == "asc") return num;
+                        else return Int16.MaxValue;
+                    }
+                    else return num;
+                }).ToDictionary(
+                    x => x.Key,
+                    x => {
+                        if (order == "asc") {
+                            return x.Value.OrderBy(
+                                y => double.Parse(y.Key)
+                            ).ToDictionary(
+                                y => y.Key,
+                                y => (IList<ChapterMangadex>)y.Value.OrderBy(
+                                    z => z?.Attributes?.TranslatedLanguage
+                                ).ToList()
+                            );
+                        }
+
+                        return x.Value.OrderByDescending(
+                            y => double.Parse(y.Key)
+                        ).ToDictionary(
+                            y => y.Key,
+                            y => (IList<ChapterMangadex>)y.Value.OrderBy(
+                                z => z?.Attributes?.TranslatedLanguage
+                            ).ToList()
+                        );
+                    }
+                );
+            }
+        }
+    }
+
+    private async Task OnPageChange(int index)
+    {
+        page = index;
+        await UpdateChapter();
+    }
+
+    private async Task OnSort()
+    {
+        if (order == "asc") order = "desc";
+        else order = "asc";
+        await UpdateChapter();
+    }
+}

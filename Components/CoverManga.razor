@@ -1,0 +1,61 @@
+@implements IDisposable
+@inject MangadexService Mangadex
+@inject IJSRuntime JSRuntime
+@using System.Net
+@using System.Text.Json
+
+<div class="w-100 h-100 position-relative overflow-hidden rounded-lg">
+    <img class="@ImageClass" loading="lazy" src="@CoverLink" alt="Error">
+</div>
+
+@code {
+    [Parameter]
+    public MangaMangadex? Manga { get; set; }
+
+    private DotNetObjectReference<CoverManga>? objRef;
+    private string ImageClass = "position-absolute img-width";
+    private string BaseLink = "https://uploads.mangadex.org/covers";
+    private string CoverLink = "https://uploads.mangadex.org/covers";
+
+    [JSInvokable]
+    public void ImageUrlAspect(bool aspect)
+    {
+        if (aspect) ImageClass = "position-absolute img-height";
+        else ImageClass = "position-absolute img-width";
+        StateHasChanged();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        objRef = DotNetObjectReference.Create(this);
+
+        var coverId = Manga?.Relationships?.FirstOrDefault(x => x.Type == "cover_art")?.Id;
+        if (coverId == null) return;
+
+        var response = await Mangadex.GetAsync($"cover/{coverId}");
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            try
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var data = JsonSerializer.Deserialize<CoverResponse>(content);
+
+                if (data?.Result == "ok")
+                {
+                    var name = data.Data?.Attributes?.FileName;
+                    CoverLink = $"{BaseLink}/{Manga?.Id}/{name}";
+                    await JSRuntime.InvokeVoidAsync("ImageUrl", objRef, CoverLink);
+                }
+            }
+            catch (System.Exception error)
+            {
+                Console.WriteLine($"Error Cover {error.Message}");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+}

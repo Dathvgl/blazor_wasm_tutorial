@@ -1,0 +1,8 @@
+.kakalot-container {
+  height: 11rem;
+  background-color: var(--lightest-gray);
+}
+
+.kakalot-cover {
+  width: 7rem;
+}

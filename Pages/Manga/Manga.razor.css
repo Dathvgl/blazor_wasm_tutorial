@@ -1,0 +1,13 @@
+.detail-manga-cover {
+  width: 13rem;
+  height: 17.5rem;
+}
+
+.detail-manga-tag {
+  background-color: var(--lightest-gray);
+}
+
+.detail-manga-content {
+  height: 20rem;
+  overflow-y: scroll;
+}

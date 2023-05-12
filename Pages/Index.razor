@@ -1,0 +1,37 @@
+﻿@page "/"
+@inject MangadexService Mangadex
+@using Blazor_Tutorial.Components
+@using System.Net
+@using System.Text.Json
+
+<PageTitle>Home</PageTitle>
+
+<KakalotUI />
+
+@code {
+    private IList<MangaMangadex> mangas = new List<MangaMangadex>();
+
+    @* protected override async Task OnInitializedAsync()
+{
+var newsChapter = await Http.GetAsync("manga");
+var popularManga = await
+Http.GetAsync("manga?order[year]=desc&order[followedCount]=desc");
+
+if (newsChapter.StatusCode == HttpStatusCode.OK)
+{
+var content = await newsChapter.Content.ReadAsStringAsync();
+var data = JsonSerializer.Deserialize<MangaResponse>(content);
+
+if (data?.result == "ok") mangas = data.data!;
+}
+
+if (popularManga.StatusCode == HttpStatusCode.OK)
+{
+var content = await popularManga.Content.ReadAsStringAsync();
+var data = JsonSerializer.Deserialize<MangaResponse>(content);
+Console.WriteLine(content);
+
+if (data?.result == "ok") mangas = data.data!;
+}
+} *@
+}

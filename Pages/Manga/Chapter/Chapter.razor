@@ -1,0 +1,112 @@
+@page "/manga/{mangaId}/chapter/{lang}/{chapterId}/{chapterCurrent}"
+@layout ChapterLayout
+@inject MangadexService Mangadex
+@inject NavigationManager Navigate
+@using System.Net
+@using System.Text.Json
+
+<div
+    class="w-100 h-100 d-flex flex-column image-chapter"
+>
+    @foreach (var item in images)
+    {
+        <img class="max-w-full" loading="lazy" src="@item" alt="Error" />
+    }
+</div>
+
+@if (List != null)
+{
+    var link = Navigate.Uri;
+    var uri = new Uri(link);
+    var split = uri.AbsolutePath.Split("/");
+
+    var chapterCurrent = split[split.Length - 1];
+    var index = List.Keys.ToList().IndexOf(chapterCurrent);
+
+    var prev = index + 1;
+    var next = index - 1;
+
+    <div
+        id="menu-chapter"
+        style="padding-bottom: 1px;"
+        class="w-100 bottom-0 position-absolute bg-danger"
+    >
+        <NavLink
+            class="href-none cursor-pointer"
+            href="@($"manga/{MangaId}/chapter/{Lang}/{List?.Values.ElementAtOrDefault(prev)}/{List?.Keys.ElementAtOrDefault(prev)}")"
+        >
+            <div class="h-100 oi oi-arrow-thick-left item-hover"></div>
+        </NavLink>
+        <button class="btn-none">
+            <div class="h-100 oi oi-zoom-in item-hover"></div>
+        </button>
+        <div
+            class="w-100 h-100 py-2"
+        >
+            <select
+                id="menu-chapter-select"
+                style="padding-left: 0.5rem;"
+                class="w-100 h-100 rounded-lg"
+                value="@ChapterCurrent"
+                @onchange="OnChangeSelect"
+            >
+                @foreach (var item in List ?? new Dictionary<string, string>())
+                {
+                    <option value="@item.Key">Ch. @item.Key</option>
+                }
+            </select>
+        </div>
+        <button class="btn-none">
+            <div class="h-100 oi oi-zoom-out item-hover"></div>
+        </button>
+        <NavLink
+            class="href-none cursor-pointer"
+            href="@($"manga/{MangaId}/chapter/{Lang}/{List?.Values.ElementAtOrDefault(next)}/{List?.Keys.ElementAtOrDefault(next)}")"
+        >
+            <div class="h-100 oi oi-arrow-thick-right item-hover"></div>
+        </NavLink>
+    </div>
+}
+
+@code {
+    [CascadingParameter(Name = "ListChapter")]
+    protected Dictionary<string, string>? List { get; set; }
+    [Parameter]
+    public string? MangaId { get; set; }
+    [Parameter]
+    public string? Lang { get; set; }
+    [Parameter]
+    public string? ChapterId { get; set; }
+    [Parameter]
+    public string? ChapterCurrent { get; set; }
+
+    private IList<string> images = new List<string>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        images.Clear();
+        var response = await Mangadex.GetAsync($"at-home/server/{ChapterId}");
+
+        if (response.StatusCode == HttpStatusCode.OK) {
+            var content = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<ImageResponse>(content);
+
+            if (data?.Result == "ok") {
+                var baseUrl = data?.BaseUrl;
+                var hash = data?.Chapter?.Hash;
+
+                foreach (var item in data?.Chapter?.DataSaver ?? new List<string>()) {
+                    images.Add($"{baseUrl}/data-saver/{hash}/{item}");
+                }
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnChangeSelect(ChangeEventArgs _event)
+    {
+        var value = _event?.Value?.ToString();
+        Navigate.NavigateTo($"manga/{MangaId}/chapter/{Lang}/{List?[value ?? ""]}/{value}");
+    }
+}

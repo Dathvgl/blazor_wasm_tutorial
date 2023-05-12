@@ -1,0 +1,188 @@
+<div class="d-flex justify-content-center w-100">
+    @if (PageCount <= 1) {
+        <button class="btn-page-item btn-page-active">
+            <div>1</div>
+        </button>
+    }
+
+    @if (PageCount > 1 && PageRange % 2 != 0) {
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn-page-nav" @onclick="@(e => OnChangeIndex("start", index - 1))">
+                <div class="oi oi-arrow-left"></div>
+            </button>
+
+            @foreach (var item in starts) {
+                <button class="btn-page-item @(index == item ? "btn-page-active" : "")" @onclick="@(e => OnChangeIndex("starts", item))">
+                    <div>@item</div>
+                </button>
+            }
+
+            @if (!starts.Contains(index) && !ends.Contains(index)) {
+                var first = starts.LastOrDefault() + PageRange;
+                var last = ends.FirstOrDefault() - PageRange;
+                if (index < first || index > last) {
+                    if (PageCount < PageRange + 2) {
+                        for (int i = 2; i < PageCount; i++)
+                        {
+                            <button
+                                class="btn-page-item @(index == i ? "btn-page-active" : "")"
+                                @onclick="@(e => OnChangeIndex("index", i))"
+                            >
+                                <div>@i</div>
+                            </button>
+                        }
+                    } else {
+                        if (index < first) {
+                            for (int i = 2; i < first + 1; i++)
+                            {
+                                <button
+                                    class="btn-page-item @(index == i ? "btn-page-active" : "")"
+                                    @onclick="@(e => OnChangeIndex("index", i))"
+                                >
+                                    <div>@i</div>
+                                </button>
+                            }
+
+                            <button class="btn-page-item">
+                                <div class="oi oi-ellipses"></div>
+                            </button>
+                        } else {
+                            <button class="btn-page-item">
+                                <div class="oi oi-ellipses"></div>
+                            </button>
+
+                            for (int i = last ?? 1 + 1; i < PageCount; i++)
+                            {
+                                <button
+                                    class="btn-page-item @(index == i ? "btn-page-active" : "")"
+                                    @onclick="@(e => OnChangeIndex("index", i))"
+                                >
+                                    <div>@i</div>
+                                </button>
+                            }
+                        }
+                    }
+                } else {
+                    <button class="btn-page-item">
+                        <div class="oi oi-ellipses"></div>
+                    </button>
+
+                    for (int i = 0; i < PageRange; i++) {
+                        if(PageRange % 2 == 0) {
+
+                        } else {
+                            var sum = index - (PageRange / 2) + i;
+                            <button
+                                class="btn-page-item @(index == sum ? "btn-page-active" : "")"
+                                @onclick="@(e => OnChangeIndex("index", sum ?? 1))"
+                            >
+                                <div>@sum</div>
+                            </button>
+                        }
+                    }
+
+                    <button class="btn-page-item">
+                        <div class="oi oi-ellipses"></div>
+                    </button>
+                }
+            } else {
+                var first = starts.LastOrDefault() + PageRange;
+                var last = ends.FirstOrDefault() - PageRange;
+                if (index < first || index > last) {
+                    if (PageCount < PageRange + 2) {
+                        for (int i = 2; i < PageCount; i++)
+                        {
+                            <button
+                                class="btn-page-item @(index == i ? "btn-page-active" : "")"
+                                @onclick="@(e => OnChangeIndex("index", i - 1))"
+                            >
+                                <div>@i</div>
+                            </button>
+                        }
+                    } else {
+                        if (index < first) {
+                            for (int i = 2; i < first + 1; i++)
+                            {
+                                <button
+                                    class="btn-page-item @(index == i ? "btn-page-active" : "")"
+                                    @onclick="@(e => OnChangeIndex("index", i - 1))"
+                                >
+                                    <div>@i</div>
+                                </button>
+                            }
+
+                            <button class="btn-page-item">
+                                <div class="oi oi-ellipses"></div>
+                            </button>
+                        } else {
+                            <button class="btn-page-item">
+                                <div class="oi oi-ellipses"></div>
+                            </button>
+                            
+                            for (int i = last ?? 1 + 1; i < PageCount; i++) {
+                                <button
+                                    class="btn-page-item @(index == i ? "btn-page-active" : "")"
+                                    @onclick="@(e => OnChangeIndex("index", i))"
+                                >
+                                    <div>@i</div>
+                                </button>
+                            }
+                        }
+                    }
+                }
+            }
+
+            @foreach (var item in ends) {
+                <button class="btn-page-item @(index == item ? "btn-page-active" : "")" @onclick="@(e => OnChangeIndex("ends", item))">
+                    <div>@item</div>
+                </button>
+            }
+
+            <button class="btn-page-nav" @onclick="@(e => OnChangeIndex("end", index + 1))">
+                <div class="oi oi-arrow-right"></div>
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public int PageCount { get; set; }
+    [Parameter]
+    public int? PageRange { get; set; } = 3;
+    [Parameter]
+    public int? PageMargin { get; set; } = 1;
+    [Parameter]
+    public EventCallback<int> OnPageChange { get; set;}
+
+    private int index = 1;
+    private List<int> starts = new List<int>();
+    private List<int> ends = new List<int>();
+
+    protected override void OnInitialized()
+    {
+        for (int i = 0; i < PageMargin; i++)
+        {
+            starts.Add(i + 1);
+            ends.Add(PageCount - i);
+        }
+    }
+
+    private async Task OnChangeIndex(string pos, int num)
+    {
+        switch (pos)
+        {
+            case "start":
+                if (num >= 1) index = num;
+                break;
+            case "end":
+                if (num <= PageCount) index = num;
+                break;
+            default:
+                if (index != num) index = num;
+                break;
+        }
+
+        await OnPageChange.InvokeAsync(index);
+    }
+}
